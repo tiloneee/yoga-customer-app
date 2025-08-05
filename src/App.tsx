@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { Provider as PaperProvider, DefaultTheme, Text, Card, Button } from 'react-native-paper';
-import { firebaseTest } from './utils/firebaseTest';
-import { validateFirebaseConfig } from './utils/firebaseConfig';
+import { firebaseTest } from './utility/firebaseTest';
+import { validateFirebaseConfig } from './utility/firebaseConfig';
 
 // Custom theme for the app
 const theme = {

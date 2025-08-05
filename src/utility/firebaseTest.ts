@@ -1,4 +1,4 @@
-import { auth, db } from '../services/firebase';
+import { auth, db } from '../api/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
 /**

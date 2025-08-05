@@ -13,6 +13,8 @@ import {
   onSnapshot,
   WhereFilterOp,
   OrderByDirection,
+  Query,
+  DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -43,7 +45,7 @@ export const firestoreService = {
   },
 
   // Add a new document
-  async addDocument<T>(collectionName: string, data: T): Promise<string> {
+  async addDocument<T extends { [key: string]: any }>(collectionName: string, data: T): Promise<string> {
     const docRef = await addDoc(collection(db, collectionName), data);
     return docRef.id;
   },
@@ -86,7 +88,7 @@ export const firestoreService = {
       limit?: number;
     }
   ) {
-    let q = collection(db, collectionName);
+    let q: Query<DocumentData> = collection(db, collectionName);
     
     if (constraints?.where) {
       constraints.where.forEach(({ field, operator, value }) => {
@@ -104,8 +106,8 @@ export const firestoreService = {
       q = query(q, limit(constraints.limit));
     }
     
-    return onSnapshot(q, (querySnapshot) => {
-      const data = querySnapshot.docs.map(doc => ({
+    return onSnapshot(q, (querySnapshot: any) => {
+      const data = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as T[];
