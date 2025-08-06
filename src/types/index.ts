@@ -4,6 +4,7 @@
 export * from './user';
 export * from './course';
 export * from './classInstance';
+export * from './booking';
 
 // API and response types
 export * from './api';

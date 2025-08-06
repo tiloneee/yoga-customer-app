@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -117,8 +118,13 @@ export const firestoreService = {
 
   async addDocument<T>(collectionName: string, data: T): Promise<FirestoreResponse<{ id: string; firebaseId: string }>> {
     try {
+      // Filter out undefined values from the data
+      const cleanData = Object.fromEntries(
+        Object.entries(data as any).filter(([_, value]) => value !== undefined)
+      );
+      
       const docRef = await addDoc(collection(db, collectionName), {
-        ...data,
+        ...cleanData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -138,11 +144,48 @@ export const firestoreService = {
     }
   },
 
+  // Add document with specific ID (for users collection)
+  async addDocumentWithId<T>(collectionName: string, docId: string, data: T): Promise<FirestoreResponse<{ id: string; firebaseId: string }>> {
+    try {
+      const docRef = doc(db, collectionName, docId);
+      
+      // Filter out undefined values from the data
+      const cleanData = Object.fromEntries(
+        Object.entries(data as any).filter(([_, value]) => value !== undefined)
+      );
+      
+      await setDoc(docRef, {
+        ...cleanData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      return { 
+        data: { id: docId, firebaseId: docId }, 
+        error: null 
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: {
+          code: 'ADD_DOCUMENT_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error occurred'
+        }
+      };
+    }
+  },
+
   async updateDocument<T>(collectionName: string, docId: string, data: Partial<T>): Promise<FirestoreResponse<void>> {
     try {
       const docRef = doc(db, collectionName, docId);
+      
+      // Filter out undefined values from the data
+      const cleanData = Object.fromEntries(
+        Object.entries(data as any).filter(([_, value]) => value !== undefined)
+      );
+      
       await updateDoc(docRef, {
-        ...data,
+        ...cleanData,
         updatedAt: serverTimestamp()
       });
       

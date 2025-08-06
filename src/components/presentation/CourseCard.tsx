@@ -7,9 +7,10 @@ import { shadows } from '../../styles/theme';
 interface CourseCardProps {
   course: Course;
   onPress: (course: Course) => void;
+  onBookPress?: (course: Course) => void;
 }
 
-const CourseCard: React.FC<CourseCardProps> = ({ course, onPress }) => {
+const CourseCard: React.FC<CourseCardProps> = ({ course, onPress, onBookPress }) => {
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -67,10 +68,22 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onPress }) => {
           </View>
         </View>
 
-        {/* Price */}
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{formatPrice(course.pricePerClass)}</Text>
-          <Text style={styles.priceLabel}>per class</Text>
+        {/* Price and Book Button */}
+        <View style={styles.bottomContainer}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>{formatPrice(course.pricePerClass)}</Text>
+            <Text style={styles.priceLabel}>per class</Text>
+          </View>
+          
+          {onBookPress && (
+            <TouchableOpacity 
+              style={styles.bookButton}
+              onPress={() => onBookPress(course)}
+            >
+              <MaterialCommunityIcons name="calendar-plus" size={16} color="white" />
+              <Text style={styles.bookButtonText}>Book Now</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -146,6 +159,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
+  bottomContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -158,6 +176,20 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 12,
     color: '#666',
+    marginLeft: 4,
+  },
+  bookButton: {
+    backgroundColor: '#4a7c59',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  bookButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
     marginLeft: 4,
   },
 });

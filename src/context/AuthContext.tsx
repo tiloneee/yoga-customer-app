@@ -45,42 +45,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: error || undefined,
   };
 
-  // Fetch user data from Firestore
+    // Fetch user data from Firestore
   const fetchUserData = async (firebaseUser: User) => {
-    try {
+    try {      
       const userData = await firestoreService.getDocument<AppUser>('users', firebaseUser.uid);
       
-      if (userData) {
+      if (userData.data) {
         setAppUser(userData.data);
       } else {
-        // If user doesn't exist in Firestore, create a default user
-        const defaultUserData: AppUser = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          fullName: firebaseUser.displayName || '',
-          phoneNumber: firebaseUser.phoneNumber || undefined,
-          profileImageUrl: firebaseUser.photoURL || undefined,
-          role: 'customer', // Default role
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setAppUser(defaultUserData);
+        // If user doesn't exist in Firestore, create the user document
+                 const defaultUserData: AppUser = {
+           id: firebaseUser.uid,
+           email: firebaseUser.email || '',
+           fullName: firebaseUser.displayName || '',
+           phoneNumber: firebaseUser.phoneNumber || undefined,
+           profileImageUrl: firebaseUser.photoURL || undefined,
+           role: 'customer', // Default role
+           isActive: true,
+           // createdAt and updatedAt will be set by Firestore serverTimestamp()
+         };
+        
+        // Add a small delay to ensure authentication is complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        try {
+          // Create the user document in Firestore with the Firebase Auth UID as document ID
+          const result = await firestoreService.addDocumentWithId('users', firebaseUser.uid, defaultUserData);
+          
+          if (result.error) {
+            console.error('Firestore creation failed with error:', result.error);
+            // Still set the user data locally even if Firestore creation fails
+            setAppUser(defaultUserData);
+          } else {
+            console.log('User document created successfully');
+            setAppUser(defaultUserData);
+          }
+        } catch (createError) {
+          console.error('Failed to create user document:', createError);
+          // Still set the user data locally even if Firestore creation fails
+          setAppUser(defaultUserData);
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
-      // Fallback to default user data
-      const defaultUserData: AppUser = {
-        id: firebaseUser.uid,
-        email: firebaseUser.email || '',
-        fullName: firebaseUser.displayName || '',
-        phoneNumber: firebaseUser.phoneNumber || undefined,
-        profileImageUrl: firebaseUser.photoURL || undefined,
-        role: 'customer',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+             // Fallback to default user data
+       const defaultUserData: AppUser = {
+         id: firebaseUser.uid,
+         email: firebaseUser.email || '',
+         fullName: firebaseUser.displayName || '',
+         phoneNumber: firebaseUser.phoneNumber || undefined,
+         profileImageUrl: firebaseUser.photoURL || undefined,
+         role: 'customer',
+         isActive: true,
+         // createdAt and updatedAt will be set by Firestore serverTimestamp()
+       };
       setAppUser(defaultUserData);
     }
   };
@@ -121,25 +139,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // First, try to create the user in Firebase Auth
       const userCredential = await authService.register(data.email, data.password, data.fullName);
       
-      // Create user document in Firestore
-      const userData: AppUser = {
-        id: userCredential.user.uid,
-        email: data.email,
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
-        profileImageUrl: userCredential.user.photoURL || undefined,
-        role: 'customer', // Default role for new users
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+             // Create user document in Firestore
+       const userData: AppUser = {
+         id: userCredential.user.uid,
+         email: data.email,
+         fullName: data.fullName,
+         phoneNumber: data.phoneNumber,
+         profileImageUrl: userCredential.user.photoURL || undefined,
+         role: 'customer', // Default role for new users
+         isActive: true,
+         // createdAt and updatedAt will be set by Firestore serverTimestamp()
+       };
+
+      console.log('userData', userData);
       
-      await firestoreService.addDocument('users', userData);
+             try {
+         const result = await firestoreService.addDocumentWithId('users', userCredential.user.uid, userData);
+         if (result.error) {
+           console.error('Firestore creation failed with error:', result.error);
+           await authService.signOut(); // Sign out the user
+           throw new Error(`Failed to create user profile: ${result.error.message}`);
+         }
+       } catch (firestoreError) {
+         // If Firestore creation fails, delete the Firebase Auth user
+         console.error('Firestore creation failed:', firestoreError);
+         await authService.signOut(); // Sign out the user
+         throw new Error('Failed to create user profile. Please try again.');
+       }
     } catch (err) {
       const authError = err as AuthError;
-      setError(authError.message);
+      console.error('Registration error:', authError);
+      
+      // Handle specific Firebase Auth errors
+      if (authError.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please try logging in instead.');
+      } else {
+        setError(authError.message);
+      }
       throw err;
     } finally {
       setIsLoading(false);

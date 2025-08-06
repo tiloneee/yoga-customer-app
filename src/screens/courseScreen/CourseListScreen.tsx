@@ -111,6 +111,11 @@ const CourseListScreen: React.FC<CourseListScreenProps> = ({ navigation }) => {
     navigation.navigate('CourseDetail', { courseId: course.id, firebaseId: course.firebaseId });
   };
 
+  // Handle booking
+  const handleBookPress = (course: Course) => {
+    navigation.navigate('Booking', { course });
+  };
+
   // Handle refresh
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -139,7 +144,11 @@ const CourseListScreen: React.FC<CourseListScreenProps> = ({ navigation }) => {
 
   // Render course item
   const renderCourseItem = ({ item }: { item: Course }) => (
-    <CourseCard course={item} onPress={handleCoursePress} />
+    <CourseCard 
+      course={item} 
+      onPress={handleCoursePress} 
+      onBookPress={handleBookPress}
+    />
   );
 
   // Render empty state

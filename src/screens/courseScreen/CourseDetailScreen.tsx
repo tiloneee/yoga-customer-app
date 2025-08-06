@@ -76,11 +76,9 @@ const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({ navigation, rou
   };
 
   const handleBookClass = async () => {
-    Alert.alert(
-      'Booking Feature',
-      'Booking functionality has been removed from this version of the app.',
-      [{ text: 'OK' }]
-    );
+    if (!course) return;
+    
+    navigation?.navigate('Booking' as never, { course } as never);
   };
 
   const handleBackPress = () => {

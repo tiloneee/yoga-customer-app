@@ -9,6 +9,7 @@ import ProfileScreen from '../screens/profileScreen/ProfileScreen';
 import AboutScreen from '../screens/aboutScreen/AboutScreen';
 import CourseListScreen from '../screens/courseScreen/CourseListScreen';
 import CourseDetailScreen from '../screens/courseScreen/CourseDetailScreen';
+import { BookingScreen, MyBookingsScreen } from '../screens/bookingScreen';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
@@ -19,6 +20,8 @@ export type RootStackParamList = {
   CourseDetail: { courseId: string };
   CourseList: undefined;
   Home: undefined;
+  Booking: { course: any };
+  MyBookings: undefined;
 };
 
 const AuthStack = createNativeStackNavigator();
@@ -44,6 +47,7 @@ function MainTabNavigator() {
           let iconName: keyof typeof MaterialCommunityIcons.glyphMap = 'home';
           if (route.name === 'Home') iconName = 'home';
           else if (route.name === 'Courses') iconName = 'yoga';
+          else if (route.name === 'MyBookings') iconName = 'calendar-check';
           else if (route.name === 'Profile') iconName = 'account';
           else if (route.name === 'About') iconName = 'information';
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
@@ -73,6 +77,7 @@ function MainTabNavigator() {
     >
       <MainTab.Screen name="Home" component={HomeScreen} />
       <MainTab.Screen name="Courses" component={CourseListScreen} />
+      <MainTab.Screen name="MyBookings" component={MyBookingsScreen} />
       <MainTab.Screen name="Profile" component={ProfileScreen} />
       <MainTab.Screen name="About" component={AboutScreen} />
     </MainTab.Navigator>
@@ -84,6 +89,7 @@ function MainStackNavigator() {
     <MainStack.Navigator screenOptions={{ headerShown: false }}>
       <MainStack.Screen name="MainTabs" component={MainTabNavigator} />
       <MainStack.Screen name="CourseDetail" component={CourseDetailScreen} />
+      <MainStack.Screen name="Booking" component={BookingScreen} />
     </MainStack.Navigator>
   );
 }

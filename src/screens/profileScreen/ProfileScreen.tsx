@@ -188,7 +188,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ _navigation }) => {
                 <Text style={styles.detailLabel}>Role</Text>
                 <View style={styles.roleBadge}>
                   <Text style={styles.roleBadgeText}>
-                    {appUser.role}
+                    {appUser.role.charAt(0).toUpperCase() + appUser.role.slice(1)}
                   </Text>
                 </View>
               </View>
@@ -201,7 +201,31 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ _navigation }) => {
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Member Since</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(appUser.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                  {(() => {
+                    try {
+                      // Handle Firestore timestamp or string date
+                      let date: Date;
+                      if (typeof appUser.createdAt === 'string') {
+                        date = new Date(appUser.createdAt);
+                      } else if (appUser.createdAt && typeof appUser.createdAt === 'object' && 'toDate' in appUser.createdAt) {
+                        // Firestore timestamp object
+                        date = (appUser.createdAt as any).toDate();
+                      } else if (typeof appUser.createdAt === 'number') {
+                        // Unix timestamp
+                        date = new Date(appUser.createdAt);
+                      } else {
+                        date = new Date();
+                      }
+                      
+                      if (isNaN(date.getTime())) {
+                        return 'Invalid date';
+                      }
+                      
+                      return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                    } catch (error) {
+                      return 'Invalid date';
+                    }
+                  })()}
                 </Text>
               </View>
             </View>

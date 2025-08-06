@@ -111,6 +111,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
           password,
           fullName: fullName.trim(),
         };
+        console.log('registrationData', registrationData);
         await register(registrationData);
       } catch (err) {
         // Error is handled by the auth context

@@ -8,8 +8,8 @@ export interface User {
   profileImageUrl?: string;
   role: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string | number | { toDate: () => Date };
+  updatedAt?: string | number | { toDate: () => Date };
 }
 
 // Simplified user profile (can be extended later)
