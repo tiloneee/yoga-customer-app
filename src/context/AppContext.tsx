@@ -51,7 +51,6 @@ const initialState: AppState = {
   cache: {
     courses: [],
     classInstances: [],
-    bookings: [],
     user: null,
     totalSize: 0,
     maxSize: 100
@@ -213,8 +212,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_ONLINE_STATUS', payload: networkStatus });
 
       // Check permissions
-      const permissions = await checkPermissions();
-      dispatch({ type: 'SET_PERMISSIONS', payload: permissions });
+      await checkPermissions();
 
       dispatch({ type: 'SET_INITIALIZED', payload: true });
     } catch (error) {
@@ -224,15 +222,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Check permissions
-  const checkPermissions = async (): Promise<PermissionState> => {
+  const checkPermissions = async (): Promise<void> => {
     // This would integrate with actual permission APIs
-    return {
+    const permissions: PermissionState = {
       camera: 'undetermined',
       photoLibrary: 'undetermined',
       location: 'undetermined',
       notifications: 'undetermined',
       microphone: 'undetermined'
     };
+    dispatch({ type: 'SET_PERMISSIONS', payload: permissions });
   };
 
   // Request permission

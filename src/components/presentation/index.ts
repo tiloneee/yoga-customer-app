@@ -1,2 +1,3 @@
 export { default as Card } from './Card';
-// Export other presentation components here 
+export { default as CourseCard } from './CourseCard';
+export { default as SearchBar } from './SearchBar'; 

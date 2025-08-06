@@ -4,13 +4,9 @@ import {
   User,
   Course,
   ClassInstance,
-  Booking,
   Instructor,
   CourseCategory,
   ClassLocation,
-  BookingPackage,
-  WaitlistEntry,
-  BookingNotification,
   ValidationResult,
   ValidationSchema,
   AppError,
@@ -54,40 +50,21 @@ export const isClassInstance = (obj: any): obj is ClassInstance => {
     obj &&
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
-    typeof obj.courseId === 'string' &&
-    typeof obj.startTime === 'string' &&
-    typeof obj.endTime === 'string' &&
-    typeof obj.duration === 'number' &&
-    typeof obj.maxCapacity === 'number' &&
+    typeof obj.courseId === 'number' &&
+    typeof obj.instructor === 'string' &&
+    typeof obj.date === 'string' &&
+    typeof obj.time === 'string' &&
+    typeof obj.dateTime === 'string' &&
     typeof obj.currentBookings === 'number' &&
-    typeof obj.availableSpots === 'number' &&
-    typeof obj.price === 'number' &&
-    typeof obj.currency === 'string' &&
-    typeof obj.isActive === 'boolean' &&
+    typeof obj.status === 'string' &&
+    typeof obj.active === 'boolean' &&
+    typeof obj.valid === 'boolean' &&
     typeof obj.createdAt === 'string' &&
     typeof obj.updatedAt === 'string'
   );
 };
 
-export const isBooking = (obj: any): obj is Booking => {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.userId === 'string' &&
-    typeof obj.classInstanceId === 'string' &&
-    typeof obj.bookingStatus === 'string' &&
-    typeof obj.bookingType === 'string' &&
-    typeof obj.paymentStatus === 'string' &&
-    typeof obj.amount === 'number' &&
-    typeof obj.currency === 'string' &&
-    typeof obj.bookingDate === 'string' &&
-    typeof obj.classDate === 'string' &&
-    typeof obj.isRecurring === 'boolean' &&
-    typeof obj.createdAt === 'string' &&
-    typeof obj.updatedAt === 'string'
-  );
-};
+
 
 export const isInstructor = (obj: any): obj is Instructor => {
   return (
@@ -136,51 +113,7 @@ export const isClassLocation = (obj: any): obj is ClassLocation => {
   );
 };
 
-export const isBookingPackage = (obj: any): obj is BookingPackage => {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.description === 'string' &&
-    typeof obj.numberOfClasses === 'number' &&
-    typeof obj.price === 'number' &&
-    typeof obj.currency === 'string' &&
-    typeof obj.validityDays === 'number' &&
-    typeof obj.isActive === 'boolean' &&
-    Array.isArray(obj.applicableCourses) &&
-    typeof obj.createdAt === 'string' &&
-    typeof obj.updatedAt === 'string'
-  );
-};
 
-export const isWaitlistEntry = (obj: any): obj is WaitlistEntry => {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.classInstanceId === 'string' &&
-    typeof obj.userId === 'string' &&
-    typeof obj.position === 'number' &&
-    typeof obj.joinedAt === 'string' &&
-    typeof obj.status === 'string'
-  );
-};
-
-export const isBookingNotification = (obj: any): obj is BookingNotification => {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    typeof obj.id === 'string' &&
-    typeof obj.bookingId === 'string' &&
-    typeof obj.userId === 'string' &&
-    typeof obj.type === 'string' &&
-    typeof obj.title === 'string' &&
-    typeof obj.message === 'string' &&
-    typeof obj.isRead === 'boolean' &&
-    typeof obj.createdAt === 'string'
-  );
-};
 
 // Validation Rules
 export const validationRules = {
@@ -313,20 +246,17 @@ export const courseValidationSchema: ValidationSchema<Course> = {
 
 export const classInstanceValidationSchema: ValidationSchema<ClassInstance> = {
   courseId: [validationRules.required],
-  startTime: [validationRules.required, validationRules.futureDate],
-  endTime: [validationRules.required, validationRules.futureDate],
-  maxCapacity: [validationRules.required, validationRules.positive, validationRules.max(100)],
-  price: [validationRules.required, validationRules.positive, validationRules.max(1000)]
+  instructor: [validationRules.required],
+  date: [validationRules.required],
+  time: [validationRules.required],
+  dateTime: [validationRules.required],
+  currentBookings: [validationRules.required],
+  status: [validationRules.required],
+  active: [validationRules.required],
+  valid: [validationRules.required]
 };
 
-export const bookingValidationSchema: ValidationSchema<Booking> = {
-  userId: [validationRules.required],
-  classInstanceId: [validationRules.required],
-  bookingStatus: [validationRules.required],
-  bookingType: [validationRules.required],
-  paymentStatus: [validationRules.required],
-  amount: [validationRules.required, validationRules.positive]
-};
+
 
 // Validation Functions
 export const validateObject = <T>(
@@ -370,9 +300,7 @@ export const validateClassInstance = (classInstance: any, isPartial: boolean = f
   return validateObject(classInstance, classInstanceValidationSchema, isPartial);
 };
 
-export const validateBooking = (booking: any, isPartial: boolean = false): ValidationResult => {
-  return validateObject(booking, bookingValidationSchema, isPartial);
-};
+
 
 // Data Transformation Functions
 export const transformFirebaseData = <T>(data: any, typeGuard: (obj: any) => obj is T): T | null => {
@@ -395,9 +323,7 @@ export const transformClassInstanceData = (data: any): ClassInstance | null => {
   return transformFirebaseData(data, isClassInstance);
 };
 
-export const transformBookingData = (data: any): Booking | null => {
-  return transformFirebaseData(data, isBooking);
-};
+
 
 // Error Handling
 export const createValidationError = (field: string, message: string, value?: any): ValidationError => {

@@ -1,34 +1,46 @@
+// Yoga App Custom Theme
+
 export const colors = {
-  primary: '#007AFF',
-  secondary: '#6C757D',
-  success: '#28A745',
-  danger: '#DC3545',
-  warning: '#FFC107',
-  info: '#17A2B8',
-  light: '#F8F9FA',
-  dark: '#343A40',
-  white: '#FFFFFF',
-  black: '#000000',
-  gray: {
-    100: '#F8F9FA',
-    200: '#E9ECEF',
-    300: '#DEE2E6',
-    400: '#CED4DA',
-    500: '#ADB5BD',
-    600: '#6C757D',
-    700: '#495057',
-    800: '#343A40',
-    900: '#212529',
-  },
+  // Green palette
+  green100: '#A8D5BA', // lightest
+  green200: '#6BBF8A',
+  green300: '#4B9B6E',
+  green400: '#2E7D5C',
+  green500: '#1B5E3A', // darkest
+
+  // Neutral palette
+  olive:    '#556945',
+  mist:     '#BDCAC5',
+  blush:    '#F2E4DE',
+  stone:    '#C6C3BD',
+  taupe:    '#84807C',
+
+  // Additional colors for UI
+  lightGray: '#BDCAC5', // same as mist
+  darkGray: '#84807C',  // same as taupe
+  border: '#BDCAC5',     // same as mist
+  error: '#DC3545',      // same as danger
+
+  // Utility
+  white:    '#FFFFFF',
+  black:    '#000000',
+
+  // Text
   text: {
-    primary: '#333333',
-    secondary: '#666666',
-    light: '#999999',
+    primary: '#1B5E3A', // dark green
+    secondary: '#556945',
+    light: '#84807C',
   },
+  // Backgrounds
   background: {
-    primary: '#FFFFFF',
-    secondary: '#F5F5F5',
+    primary: '#F2E4DE', // blush
+    card:    '#FFFFFF',
+    muted:   '#BDCAC5', // mist
   },
+  // Status
+  success: '#6BBF8A',
+  warning: '#FFC107',
+  danger:  '#DC3545',
 } as const;
 
 export const spacing = {
@@ -40,12 +52,9 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+// Global border radius for all cards, buttons, etc.
 export const borderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  round: 50,
+  all: 14,
 } as const;
 
 export const typography = {
@@ -66,35 +75,20 @@ export const typography = {
   },
 } as const;
 
+// Custom shadow using #023E15
 export const shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+  card: {
+    shadowColor: '#023E15',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
-    shadowRadius: 1.0,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
+    shadowRadius: 8,
     elevation: 8,
+  },
+  button: {
+    shadowColor: '#023E15',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
   },
 } as const; 

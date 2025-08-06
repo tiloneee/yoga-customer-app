@@ -27,7 +27,7 @@ export interface FirebaseDocument<T = any> {
 export const COLLECTIONS = {
   USERS: 'users',
   COURSES: 'courses',
-  CLASS_INSTANCES: 'classInstances',
+  CLASS_INSTANCES: 'instances',
   BOOKINGS: 'bookings',
   INSTRUCTORS: 'instructors',
   COURSE_CATEGORIES: 'courseCategories',

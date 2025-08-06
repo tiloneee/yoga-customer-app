@@ -8,6 +8,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { User as AppUser } from '../types/user';
 
 export interface AuthError {
   code: string;
@@ -29,7 +30,8 @@ export const authService = {
 
   // Sign in existing user
   async signIn(email: string, password: string): Promise<UserCredential> {
-    return await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential;
   },
 
   // Sign out user
@@ -40,6 +42,21 @@ export const authService = {
   // Reset password
   async resetPassword(email: string): Promise<void> {
     await sendPasswordResetEmail(auth, email);
+  },
+
+  // Update user profile
+  async updateProfile(user: User, data: Partial<AppUser>): Promise<void> {
+    const updateData: { displayName?: string; photoURL?: string } = {};
+    
+    if (data.fullName) {
+      updateData.displayName = data.fullName;
+    }
+    
+    if (data.profileImageUrl) {
+      updateData.photoURL = data.profileImageUrl;
+    }
+    
+    await updateProfile(user, updateData);
   },
 
   // Get current user

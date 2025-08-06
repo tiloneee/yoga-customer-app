@@ -3,9 +3,9 @@
 import { Course } from './course';
 
 export interface ClassInstance {
-  id: string;
+  id: number;
   firebaseId: string;
-  courseId: string;
+  courseId: number; // Changed from string to number based on actual data structure
   course?: Course; // Optional, can be populated when needed
   instructor: string;
   date: string; // Date in YYYY-MM-DD format
@@ -30,7 +30,7 @@ export type ClassStatus =
 
 // Class instance search and filtering types
 export interface ClassInstanceSearchFilters {
-  courseId?: string;
+  courseId?: number; // Changed from string to number
   instructor?: string;
   dateRange?: {
     start: string;
@@ -65,7 +65,7 @@ export interface ClassInstanceSearchResults {
 
 // Class instance validation types
 export interface ClassInstanceValidationErrors {
-  courseId?: string;
+  courseId?: number;
   instructor?: string;
   date?: string;
   time?: string;
@@ -74,7 +74,7 @@ export interface ClassInstanceValidationErrors {
 
 // Class instance action types
 export interface CreateClassInstanceData {
-  courseId: string;
+  courseId: number; // Changed from string to number
   instructor: string;
   date: string;
   time: string;

@@ -1,7 +1,7 @@
 // Course-related TypeScript interfaces and types
 
 export interface Course {
-  id: string;
+  id: number;
   firebaseId: string;
   courseName: string;
   courseType: string;

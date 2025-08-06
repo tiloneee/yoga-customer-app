@@ -16,14 +16,6 @@ import {
   ClassInstanceSearchResults,
   ClassInstanceSearchFilters,
   ClassInstanceAvailability,
-  Booking,
-  BookingSearchResults,
-  BookingSearchFilters,
-  BookingStats,
-  WaitlistEntry,
-  BookingPackage,
-  PackageBooking,
-  BookingNotification,
   CachedResponse,
   AnalyticsEvent,
   LoginCredentials,
@@ -31,11 +23,7 @@ import {
   UpdateUserProfileData,
   UpdateUserPreferencesData,
   CourseSearchParams,
-  ClassInstanceSearchParams,
-  CreateBookingData,
-  UpdateBookingData,
-  CancelBookingData,
-  BookingSearchParams
+  ClassInstanceSearchParams
 } from './index';
 
 // Redux State Types
@@ -44,8 +32,7 @@ export interface RootState {
   user: UserState;
   courses: CoursesState;
   classInstances: ClassInstancesState;
-  bookings: BookingsState;
-  notifications: NotificationsState;
+
   ui: UIState;
   app: AppState;
 }
@@ -100,34 +87,7 @@ export interface ClassInstancesState {
   currentPage: number;
 }
 
-// Bookings State
-export interface BookingsState {
-  bookings: Booking[];
-  currentBooking: Booking | null;
-  searchResults: BookingSearchResults | null;
-  filters: BookingSearchFilters;
-  stats: BookingStats | null;
-  waitlist: WaitlistEntry[];
-  packages: BookingPackage[];
-  packageBookings: PackageBooking[];
-  isLoading: boolean;
-  error: string | null;
-  hasMore: boolean;
-  currentPage: number;
-  isCreating: boolean;
-  isUpdating: boolean;
-  isCancelling: boolean;
-}
 
-// Notifications State
-export interface NotificationsState {
-  notifications: BookingNotification[];
-  unreadCount: number;
-  isLoading: boolean;
-  error: string | null;
-  hasMore: boolean;
-  currentPage: number;
-}
 
 // UI State
 export interface UIState {
@@ -250,7 +210,6 @@ export interface AppSettings {
 export interface CacheState {
   courses: CachedResponse<Course[]>[];
   classInstances: CachedResponse<ClassInstance[]>[];
-  bookings: CachedResponse<Booking[]>[];
   user: CachedResponse<User> | null;
   totalSize: number;
   maxSize: number;
@@ -297,17 +256,7 @@ export interface ClassInstancesAction {
   error?: string;
 }
 
-export interface BookingsAction {
-  type: string;
-  payload?: any;
-  error?: string;
-}
 
-export interface NotificationsAction {
-  type: string;
-  payload?: any;
-  error?: string;
-}
 
 export interface UIAction {
   type: string;
@@ -361,26 +310,7 @@ export interface ClassInstancesSelectors {
   hasMore: (state: RootState) => boolean;
 }
 
-export interface BookingsSelectors {
-  bookings: (state: RootState) => Booking[];
-  currentBooking: (state: RootState) => Booking | null;
-  searchResults: (state: RootState) => BookingSearchResults | null;
-  stats: (state: RootState) => BookingStats | null;
-  waitlist: (state: RootState) => WaitlistEntry[];
-  packages: (state: RootState) => BookingPackage[];
-  packageBookings: (state: RootState) => PackageBooking[];
-  isLoading: (state: RootState) => boolean;
-  error: (state: RootState) => string | null;
-  hasMore: (state: RootState) => boolean;
-}
 
-export interface NotificationsSelectors {
-  notifications: (state: RootState) => BookingNotification[];
-  unreadCount: (state: RootState) => number;
-  isLoading: (state: RootState) => boolean;
-  error: (state: RootState) => string | null;
-  hasMore: (state: RootState) => boolean;
-}
 
 export interface UISelectors {
   theme: (state: RootState) => AppTheme;
@@ -442,29 +372,7 @@ export interface ClassInstancesContextType {
   setFilters: (filters: ClassInstanceSearchFilters) => void;
 }
 
-export interface BookingsContextType {
-  state: BookingsState;
-  createBooking: (data: CreateBookingData) => Promise<void>;
-  fetchBookings: (params?: BookingSearchParams) => Promise<void>;
-  fetchBooking: (id: string) => Promise<void>;
-  updateBooking: (id: string, data: UpdateBookingData) => Promise<void>;
-  cancelBooking: (id: string, data: CancelBookingData) => Promise<void>;
-  joinWaitlist: (classInstanceId: string) => Promise<void>;
-  leaveWaitlist: (classInstanceId: string) => Promise<void>;
-  fetchPackages: () => Promise<void>;
-  purchasePackage: (packageId: string) => Promise<void>;
-  searchBookings: (params: BookingSearchParams) => Promise<void>;
-  clearSearch: () => void;
-  setFilters: (filters: BookingSearchFilters) => void;
-}
 
-export interface NotificationsContextType {
-  state: NotificationsState;
-  fetchNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-}
 
 export interface UIContextType {
   state: UIState;
