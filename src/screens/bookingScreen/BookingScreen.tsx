@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { instancesService } from '../../api/firestoreService';
 import { bookingService } from '../../api/bookingService';
@@ -37,6 +37,13 @@ const BookingScreen: React.FC = () => {
   useEffect(() => {
     loadInstances();
   }, [course.id]);
+
+  // Refresh instances when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadInstances();
+    }, [course.id])
+  );
 
   const loadInstances = async () => {
     try {
@@ -81,6 +88,11 @@ const BookingScreen: React.FC = () => {
       return;
     }
 
+    if (!appUser.id) {
+      Alert.alert('Error', 'User ID is missing. Please log in again.');
+      return;
+    }
+
     // Check if instance is at capacity
     if (instance.currentBookings >= course.capacity) {
       Alert.alert('Class Full', 'This class is at full capacity');
@@ -97,28 +109,36 @@ const BookingScreen: React.FC = () => {
           onPress: async () => {
             try {
               setBookingLoading(instance.firebaseId);
-                             const result = await bookingService.createBooking({
-                 instancesId: instance.id,
-                 userId: appUser.id,
-                 status: 'pending'
-               });
+              
+              const result = await bookingService.createBooking({
+                instancesId: instance.id,
+                userId: appUser.id,
+                status: 'pending'
+              });
 
               if (result.error) {
-                Alert.alert('Booking Error', result.error.message);
+                // Handle specific error cases
+                if (result.error.code === 'INSTANCE_FULL') {
+                  Alert.alert('Class Full', 'This class is now at full capacity. Please try another class.');
+                } else if (result.error.code === 'DUPLICATE_BOOKING') {
+                  Alert.alert('Already Booked', 'You already have a booking for this class.');
+                } else {
+                  Alert.alert('Booking Error', result.error.message);
+                }
                 return;
               }
 
-                             Alert.alert(
-                 'Booking Confirmed!',
-                 `You have successfully booked ${course.courseName} on ${instance.date} at ${instance.time}`,
-                 [
-                   {
-                     text: 'View My Bookings',
-                     onPress: () => (navigation as any).navigate('MainTabs', { screen: 'MyBookings' })
-                   },
-                   { text: 'OK' }
-                 ]
-               );
+              Alert.alert(
+                'Booking Confirmed!',
+                `You have successfully booked ${course.courseName} on ${instance.date} at ${instance.time}`,
+                [
+                  {
+                    text: 'View My Bookings',
+                    onPress: () => (navigation as any).navigate('MainTabs', { screen: 'MyBookings' })
+                  },
+                  { text: 'OK' }
+                ]
+              );
 
               // Refresh instances to update capacity
               loadInstances();
@@ -136,7 +156,7 @@ const BookingScreen: React.FC = () => {
   const renderInstance = ({ item }: { item: ClassInstance }) => {
     const isFull = item.currentBookings >= course.capacity;
     const isBooking = bookingLoading === item.firebaseId;
-    const availableSpots = course.capacity - item.currentBookings;
+    const availableSpots = Math.max(0, course.capacity - item.currentBookings);
     
     // Time-based logic
     const instanceDateTime = new Date(`${item.date} ${item.time}`);
@@ -146,19 +166,24 @@ const BookingScreen: React.FC = () => {
     const isDisabled = isFull || isBooking || isPast || isWithin2Hours;
 
     return (
-      <View style={styles.instanceCard}>
+      <View style={[styles.instanceCard, isFull && styles.fullInstanceCard]}>
         <View style={styles.instanceHeader}>
           <Text style={styles.instanceDate}>{item.date}</Text>
           <Text style={styles.instanceTime}>{item.time}</Text>
+          {isFull && (
+            <View style={styles.fullBadge}>
+              <Text style={styles.fullBadgeText}>FULL</Text>
+            </View>
+          )}
         </View>
         
         <View style={styles.instanceDetails}>
           <Text style={styles.instructor}>Instructor: {item.instructor}</Text>
-          <Text style={styles.capacity}>
+          <Text style={[styles.capacity, isFull && styles.fullCapacity]}>
             {item.currentBookings}/{course.capacity} booked
           </Text>
-          <Text style={styles.availableSpots}>
-            {availableSpots} spots available
+          <Text style={[styles.availableSpots, isFull && styles.fullAvailableSpots]}>
+            {isFull ? 'No spots available' : `${availableSpots} spots available`}
           </Text>
           {isPast && (
             <Text style={styles.pastInstance}>This class has already started</Text>
@@ -171,7 +196,8 @@ const BookingScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.bookButton,
-            isDisabled && styles.bookButtonDisabled
+            isDisabled && styles.bookButtonDisabled,
+            isFull && styles.fullBookButton
           ]}
           onPress={() => handleBooking(item)}
           disabled={isDisabled}
@@ -311,6 +337,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  fullInstanceCard: {
+    backgroundColor: '#ffebee', // Light red background for full instances
+    borderColor: '#e57373', // Red border for full instances
+    borderWidth: 2,
+  },
+  fullBadge: {
+    backgroundColor: '#e57373',
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginLeft: 10,
+  },
+  fullBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   instanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -340,10 +383,18 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 4,
   },
+  fullCapacity: {
+    color: '#e74c3c', // Red color for full capacity
+    fontWeight: 'bold',
+  },
   availableSpots: {
     fontSize: 14,
     color: '#4a7c59',
     fontWeight: '500',
+  },
+  fullAvailableSpots: {
+    color: '#e74c3c', // Red color for full available spots
+    fontWeight: 'bold',
   },
   pastInstance: {
     fontSize: 12,
@@ -359,6 +410,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fullBookButton: {
+    backgroundColor: '#e74c3c', // Darker red for full instances
   },
   bookButtonDisabled: {
     backgroundColor: '#ccc',

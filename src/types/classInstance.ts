@@ -89,4 +89,5 @@ export interface UpdateClassInstanceData {
   notes?: string;
   active?: boolean;
   valid?: boolean;
+  currentBookings?: number;
 } 

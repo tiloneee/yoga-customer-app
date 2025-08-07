@@ -47,7 +47,15 @@ const MyBookingsScreen: React.FC = () => {
   );
 
   const loadBookings = async () => {
-    if (!appUser) return;
+    if (!appUser) {
+      Alert.alert('Error', 'Please log in to view your bookings');
+      return;
+    }
+
+    if (!appUser.id) {
+      Alert.alert('Error', 'User ID is missing. Please log in again.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -58,7 +66,7 @@ const MyBookingsScreen: React.FC = () => {
       const result = await bookingService.getUserBookingsWithDetails(appUser.id);
       
       if (result.error) {
-        Alert.alert('Error', 'Failed to load bookings');
+        Alert.alert('Error', result.error.message || 'Failed to load bookings');
         return;
       }
 

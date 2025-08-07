@@ -1,7 +1,12 @@
 import { firestoreService, FirestoreResponse, FirestoreListResponse, QueryConstraints } from './firestoreService';
 import { Booking, CreateBookingData, UpdateBookingData, BookingWithDetails } from '../types/booking';
-import { ClassInstance } from '../types/classInstance';
+import { ClassInstance, UpdateClassInstanceData } from '../types/classInstance';
 import { Course } from '../types/course';
+
+type BookingBatchOperation =
+  | { type: 'add'; collection: 'bookings'; data: CreateBookingData & { createdAt: string } }
+  | { type: 'update'; collection: 'instances'; docId: string; data: UpdateClassInstanceData }
+  | { type: 'update'; collection: 'bookings'; docId: string; data: { status: string } };
 
 // Utility functions for time-based logic
 const getInstanceDateTime = (date: string, time: string): Date => {
@@ -56,6 +61,18 @@ export const bookingService = {
 
   // Get bookings by user ID
   async getBookingsByUserId(userId: string): Promise<FirestoreListResponse<Booking>> {
+    // Validate userId
+    if (!userId) {
+      return { 
+        data: [], 
+        error: { 
+          code: 'USER_ID_MISSING', 
+          message: 'User ID is required to load bookings' 
+        }, 
+        totalCount: 0 
+      };
+    }
+
     return firestoreService.getDocuments<Booking>('bookings', {
       where: [{ field: 'userId', operator: '==', value: userId }],
       orderBy: [{ field: 'createdAt', direction: 'desc' }]
@@ -76,7 +93,28 @@ export const bookingService = {
 
   // Create new booking
   async createBooking(data: CreateBookingData): Promise<FirestoreResponse<Booking>> {
-    // First, check if the instance exists and has capacity
+    // Validate required fields
+    if (!data.userId) {
+      return { 
+        data: null, 
+        error: { 
+          code: 'USER_ID_MISSING', 
+          message: 'User ID is required to create a booking' 
+        } 
+      };
+    }
+
+    if (!data.instancesId) {
+      return { 
+        data: null, 
+        error: { 
+          code: 'INSTANCE_ID_MISSING', 
+          message: 'Instance ID is required to create a booking' 
+        } 
+      };
+    }
+
+    // First, check if the instance exists
     const instanceResult = await firestoreService.getDocuments<ClassInstance>('instances', {
       where: [{ field: 'id', operator: '==', value: data.instancesId }]
     });
@@ -141,24 +179,31 @@ export const bookingService = {
     }
 
     // Create the booking and update instance currentBookings in a batch
+    const bookingStatus = data.status || 'pending';
     const bookingData = {
-      ...data,
-      status: data.status || 'pending'
+      instancesId: data.instancesId,
+      userId: data.userId,
+      status: bookingStatus,
+      createdAt: new Date().toISOString()
     };
 
-    const batchOperations = [
+    const batchOperations: BookingBatchOperation[] = [
       {
-        type: 'add' as const,
+        type: 'add',
         collection: 'bookings',
         data: bookingData
-      },
-      {
-        type: 'update' as const,
+      }
+    ];
+
+    // Only increment if status is 'pending' or 'confirmed'
+    if (bookingStatus === 'pending' || bookingStatus === 'confirmed') {
+      batchOperations.push({
+        type: 'update',
         collection: 'instances',
         docId: instance.firebaseId,
         data: { currentBookings: instance.currentBookings + 1 }
-      }
-    ];
+      });
+    }
 
     const batchResult = await firestoreService.batchWrite(batchOperations);
     
@@ -189,7 +234,80 @@ export const bookingService = {
 
   // Update booking
   async updateBooking(firebaseId: string, data: UpdateBookingData): Promise<FirestoreResponse<void>> {
-    return firestoreService.updateDocument('bookings', firebaseId, data);
+    // Get the current booking to understand the status change
+    const bookingResult = await this.getBookingByFirebaseId(firebaseId);
+    if (bookingResult.error || !bookingResult.data) {
+      return { data: null, error: bookingResult.error };
+    }
+
+    const currentBooking = bookingResult.data;
+    const newStatus = data.status;
+
+    // If no status change, just update the booking
+    if (!newStatus || newStatus === currentBooking.status) {
+      return firestoreService.updateDocument('bookings', firebaseId, data);
+    }
+
+    // Get the instance to update currentBookings
+    const instanceResult = await firestoreService.getDocuments<ClassInstance>('instances', {
+      where: [{ field: 'id', operator: '==', value: currentBooking.instancesId }]
+    });
+
+    if (instanceResult.error || !instanceResult.data[0]) {
+      return { 
+        data: null, 
+        error: { 
+          code: 'INSTANCE_NOT_FOUND', 
+          message: 'Class instance not found' 
+        } 
+      };
+    }
+
+    const instance = instanceResult.data[0];
+    const batchOperations: BookingBatchOperation[] = [];
+
+    // Define which statuses count towards currentBookings
+    const countingStatuses = ['pending', 'confirmed'];
+    const oldStatusCounts = countingStatuses.includes(currentBooking.status);
+    const newStatusCounts = countingStatuses.includes(newStatus);
+
+    // Update the booking status
+    batchOperations.push({
+      type: 'update',
+      collection: 'bookings',
+      docId: firebaseId,
+      data: { status: newStatus }
+    });
+
+    // Handle currentBookings count changes
+    if (oldStatusCounts && !newStatusCounts) {
+      // Status changed from counting to non-counting (e.g., confirmed -> cancelled)
+      // Decrease currentBookings
+      batchOperations.push({
+        type: 'update',
+        collection: 'instances',
+        docId: instance.firebaseId,
+        data: { currentBookings: Math.max(0, instance.currentBookings - 1) }
+      });
+    } else if (!oldStatusCounts && newStatusCounts) {
+      // Status changed from non-counting to counting (e.g., cancelled -> confirmed)
+      // Increase currentBookings
+      batchOperations.push({
+        type: 'update',
+        collection: 'instances',
+        docId: instance.firebaseId,
+        data: { currentBookings: instance.currentBookings + 1 }
+      });
+    }
+    // If both old and new status count (e.g., pending -> confirmed), no change needed
+
+    if (batchOperations.length === 1) {
+      // Only booking update, no instance update needed
+      return firestoreService.updateDocument('bookings', firebaseId, data);
+    } else {
+      // Batch update needed
+      return firestoreService.batchWrite(batchOperations);
+    }
   },
 
   // Cancel booking
@@ -231,20 +349,24 @@ export const bookingService = {
     }
 
     // Update booking status and decrease instance currentBookings in a batch
-    const batchOperations = [
+    const batchOperations: BookingBatchOperation[] = [
       {
-        type: 'update' as const,
+        type: 'update',
         collection: 'bookings',
         docId: firebaseId,
         data: { status: 'cancelled' }
-      },
-      {
-        type: 'update' as const,
+      }
+    ];
+
+    // Only decrement if booking was 'pending' or 'confirmed'
+    if (booking.status === 'pending' || booking.status === 'confirmed') {
+      batchOperations.push({
+        type: 'update',
         collection: 'instances',
         docId: instance.firebaseId,
         data: { currentBookings: Math.max(0, instance.currentBookings - 1) }
-      }
-    ];
+      });
+    }
 
     return firestoreService.batchWrite(batchOperations);
   },
@@ -347,6 +469,18 @@ export const bookingService = {
 
   // Get user bookings with details (optimized)
   async getUserBookingsWithDetails(userId: string): Promise<FirestoreListResponse<BookingWithDetails>> {
+    // Validate userId
+    if (!userId) {
+      return { 
+        data: [], 
+        error: { 
+          code: 'USER_ID_MISSING', 
+          message: 'User ID is required to load bookings' 
+        }, 
+        totalCount: 0 
+      };
+    }
+
     const bookingsResult = await this.getBookingsByUserId(userId);
     if (bookingsResult.error) {
       return { data: [], error: bookingsResult.error, totalCount: 0 };
@@ -423,6 +557,86 @@ export const bookingService = {
       error: null, 
       totalCount: bookingsWithDetails.length 
     };
+  },
+
+  // Recalculate currentBookings for all instances
+  async recalculateAllInstanceBookings(): Promise<FirestoreResponse<void>> {
+    // Get all instances
+    const instancesResult = await firestoreService.getDocuments<ClassInstance>('instances', {});
+    
+    if (instancesResult.error) {
+      return { data: null, error: instancesResult.error };
+    }
+
+    const batchOperations: BookingBatchOperation[] = [];
+
+    for (const instance of instancesResult.data) {
+      // Get all active bookings for this instance
+      const bookingsResult = await firestoreService.getDocuments<Booking>('bookings', {
+        where: [
+          { field: 'instancesId', operator: '==', value: instance.id },
+          { field: 'status', operator: 'in', value: ['pending', 'confirmed'] }
+        ]
+      });
+
+      if (!bookingsResult.error) {
+        const actualBookingsCount = bookingsResult.data.length;
+        
+        // Only update if the count is different
+        if (actualBookingsCount !== instance.currentBookings) {
+          batchOperations.push({
+            type: 'update',
+            collection: 'instances',
+            docId: instance.firebaseId,
+            data: { currentBookings: actualBookingsCount }
+          });
+        }
+      }
+    }
+
+    if (batchOperations.length === 0) {
+      return { data: null, error: null };
+    }
+
+    return firestoreService.batchWrite(batchOperations);
+  },
+
+  // Recalculate currentBookings for an instance
+  async recalculateInstanceBookings(instanceId: number): Promise<FirestoreResponse<void>> {
+    // Get all active bookings for this instance
+    const bookingsResult = await firestoreService.getDocuments<Booking>('bookings', {
+      where: [
+        { field: 'instancesId', operator: '==', value: instanceId },
+        { field: 'status', operator: 'in', value: ['pending', 'confirmed'] }
+      ]
+    });
+
+    if (bookingsResult.error) {
+      return { data: null, error: bookingsResult.error };
+    }
+
+    // Get the instance
+    const instanceResult = await firestoreService.getDocuments<ClassInstance>('instances', {
+      where: [{ field: 'id', operator: '==', value: instanceId }]
+    });
+
+    if (instanceResult.error || !instanceResult.data[0]) {
+      return { 
+        data: null, 
+        error: { 
+          code: 'INSTANCE_NOT_FOUND', 
+          message: 'Class instance not found' 
+        } 
+      };
+    }
+
+    const instance = instanceResult.data[0];
+    const actualBookingsCount = bookingsResult.data.length;
+
+    // Update the instance with the correct count
+    return firestoreService.updateDocument('instances', instance.firebaseId, {
+      currentBookings: actualBookingsCount
+    });
   },
 
   // Real-time listeners
