@@ -28,10 +28,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   const { register, isLoading, error, clearError } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullNameError, setFullNameError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [phoneNumberError, setPhoneNumberError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +74,23 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     return true;
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Basic phone number validation - allows digits, spaces, dashes, and parentheses
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    if (!phone.trim()) {
+      setPhoneNumberError('Phone number is required');
+      return false;
+    }
+    // Remove all non-digit characters for validation
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setPhoneNumberError('Please enter a valid phone number');
+      return false;
+    }
+    setPhoneNumberError('');
+    return true;
+  };
+
   const validatePassword = (password: string): boolean => {
     if (!password) {
       setPasswordError('Password is required');
@@ -99,19 +118,23 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   };
 
   const handleRegister = async () => {
-    const isFullNameValid = validateFullName(fullName);
+    const trimmedFullName = fullName.trim();
+    const trimmedPhoneNumber = phoneNumber.trim();
+    
+    const isFullNameValid = validateFullName(trimmedFullName);
     const isEmailValid = validateEmail(email);
+    const isPhoneNumberValid = validatePhoneNumber(trimmedPhoneNumber);
     const isPasswordValid = validatePassword(password);
     const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
 
-    if (isFullNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid) {
+    if (isFullNameValid && isEmailValid && isPhoneNumberValid && isPasswordValid && isConfirmPasswordValid) {
       try {
         const registrationData: RegistrationData = {
           email: email.trim(),
           password,
-          fullName: fullName.trim(),
+          fullName: trimmedFullName,
+          phoneNumber: trimmedPhoneNumber,
         };
-        console.log('registrationData', registrationData);
         await register(registrationData);
       } catch (err) {
         // Error is handled by the auth context
@@ -131,6 +154,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     setEmail(text);
     if (emailError) {
       validateEmail(text);
+    }
+  };
+
+  const handlePhoneNumberChange = (text: string) => {
+    setPhoneNumber(text);
+    if (phoneNumberError) {
+      validatePhoneNumber(text);
     }
   };
 
@@ -206,6 +236,22 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
               />
             </View>
             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
+            {/* Phone Number Input */}
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="phone-outline" size={20} color="#999" style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Phone Number"
+                placeholderTextColor="#999"
+                value={phoneNumber}
+                onChangeText={handlePhoneNumberChange}
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            {phoneNumberError ? <Text style={styles.errorText}>{phoneNumberError}</Text> : null}
 
             {/* Password Input */}
             <View style={styles.inputContainer}>

@@ -48,57 +48,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Fetch user data from Firestore
   const fetchUserData = async (firebaseUser: User) => {
     try {      
+      // Add a small delay to ensure any pending Firestore writes are complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const userData = await firestoreService.getDocument<AppUser>('users', firebaseUser.uid);
       
       if (userData.data) {
         setAppUser(userData.data);
       } else {
         // If user doesn't exist in Firestore, create the user document
-                 const defaultUserData: AppUser = {
-           id: firebaseUser.uid,
-           email: firebaseUser.email || '',
-           fullName: firebaseUser.displayName || '',
-           phoneNumber: firebaseUser.phoneNumber || undefined,
-           profileImageUrl: firebaseUser.photoURL || undefined,
-           role: 'customer', // Default role
-           isActive: true,
-           // createdAt and updatedAt will be set by Firestore serverTimestamp()
-         };
-        
-        // Add a small delay to ensure authentication is complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        try {
-          // Create the user document in Firestore with the Firebase Auth UID as document ID
-          const result = await firestoreService.addDocumentWithId('users', firebaseUser.uid, defaultUserData);
+        // But only if we have a displayName (meaning user was properly registered)
+        if (firebaseUser.displayName) {
+          const defaultUserData: AppUser = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            fullName: firebaseUser.displayName,
+            phoneNumber: firebaseUser.phoneNumber || undefined,
+            profileImageUrl: firebaseUser.photoURL || undefined,
+            role: 'customer', // Default role
+            isActive: true,
+            // createdAt and updatedAt will be set by Firestore serverTimestamp()
+          };
           
-          if (result.error) {
-            console.error('Firestore creation failed with error:', result.error);
+          try {
+            // Create the user document in Firestore with the Firebase Auth UID as document ID
+            const result = await firestoreService.addDocumentWithId('users', firebaseUser.uid, defaultUserData);
+            
+            if (result.error) {
+              console.error('Firestore creation failed with error:', result.error);
+              // Still set the user data locally even if Firestore creation fails
+              setAppUser(defaultUserData);
+            } else {
+              console.log('User document created successfully from fetchUserData');
+              setAppUser(defaultUserData);
+            }
+          } catch (createError) {
+            console.error('Failed to create user document:', createError);
             // Still set the user data locally even if Firestore creation fails
             setAppUser(defaultUserData);
-          } else {
-            console.log('User document created successfully');
-            setAppUser(defaultUserData);
           }
-        } catch (createError) {
-          console.error('Failed to create user document:', createError);
-          // Still set the user data locally even if Firestore creation fails
-          setAppUser(defaultUserData);
+        } else {
+          // If no displayName, the user might not be fully registered yet
+          // Set a minimal user object and wait for proper registration
+          const minimalUserData: AppUser = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            fullName: '',
+            phoneNumber: firebaseUser.phoneNumber || undefined,
+            profileImageUrl: firebaseUser.photoURL || undefined,
+            role: 'customer',
+            isActive: true,
+          };
+          setAppUser(minimalUserData);
         }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
-             // Fallback to default user data
-       const defaultUserData: AppUser = {
-         id: firebaseUser.uid,
-         email: firebaseUser.email || '',
-         fullName: firebaseUser.displayName || '',
-         phoneNumber: firebaseUser.phoneNumber || undefined,
-         profileImageUrl: firebaseUser.photoURL || undefined,
-         role: 'customer',
-         isActive: true,
-         // createdAt and updatedAt will be set by Firestore serverTimestamp()
-       };
+      // Fallback to default user data
+      const defaultUserData: AppUser = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        fullName: firebaseUser.displayName || '',
+        phoneNumber: firebaseUser.phoneNumber || undefined,
+        profileImageUrl: firebaseUser.photoURL || undefined,
+        role: 'customer',
+        isActive: true,
+        // createdAt and updatedAt will be set by Firestore serverTimestamp()
+      };
       setAppUser(defaultUserData);
     }
   };
@@ -155,7 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
          // createdAt and updatedAt will be set by Firestore serverTimestamp()
        };
 
-      console.log('userData', userData);
+       
       
              try {
          const result = await firestoreService.addDocumentWithId('users', userCredential.user.uid, userData);
